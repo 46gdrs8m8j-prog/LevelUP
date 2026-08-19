@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>LEVEL UP</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LEVEL UP">
+<meta name="theme-color" content="#0B0C14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0B0C14; --panel:#141726; --panel-alt:#1B1F33;
+    --border:#1E2238; --border2:#232847; --border3:#2A2F52; --dim:#3A4066;
+    --text:#E7E9F5; --muted:#A6ADCE; --muted2:#7C84AA; --muted3:#5E6488;
+    --violet:#8B6BFF; --violet-light:#C4B0FF; --violet-deep:#4B2FCC;
+    --gold:#FFC94D; --gold-deep:#C98A1E;
+    --coral:#FF8A6A; --teal:#5EEAD4; --amber:#F5B942; --green:#4ADE80;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;background:var(--bg);color:var(--text);}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+    overflow-x:hidden; min-height:100vh;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+
+  .notice{margin:0 20px 14px;padding:10px 14px;border-radius:10px;background:rgba(255,138,106,.12);border:1px solid rgba(255,138,106,.3);font-size:12px;color:var(--coral);line-height:1.4;}
+
+  .header{padding:calc(28px + env(safe-area-inset-top)) 20px 18px;}
+  .eyebrow{font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin:0;}
+  .streak-pill{display:inline-flex;align-items:center;gap:5px;background:var(--panel);padding:5px 11px;border-radius:999px;}
+  .top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+  .id-row{display:flex;align-items:center;gap:14px;margin-top:12px;}
+  .badge-hex{
+    width:64px;height:64px;flex-shrink:0;
+    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+    background:linear-gradient(145deg,var(--violet),var(--violet-deep));
+    display:flex;align-items:center;justify-content:center;
+    animation:glowPulse 3s ease-in-out infinite;
+  }
+  .badge-hex span{font-size:20px;font-weight:700;color:#fff;}
+  .id-name{font-size:18px;font-weight:700;margin:0 0 2px;}
+  .id-title{font-size:14px;color:var(--violet);font-weight:600;margin:0;}
+  .xp-wrap{margin-top:16px;}
+  .xp-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;}
+  .xp-track{height:12px;border-radius:999px;background:var(--panel);border:1px solid var(--border2);overflow:hidden;}
+  .xp-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--violet),var(--violet-light));transition:width .5s ease-out;}
+
+  @keyframes glowPulse{0%,100%{box-shadow:0 0 0 rgba(139,107,255,0);}50%{box-shadow:0 0 24px rgba(139,107,255,.55);}}
+  @keyframes floatUp{0%{opacity:0;transform:translateY(8px);}15%{opacity:1;transform:translateY(0);}85%{opacity:1;}100%{opacity:0;transform:translateY(-18px);}}
+  @keyframes burst{0%{transform:scale(.6);opacity:0;}40%{transform:scale(1.05);opacity:1;}100%{transform:scale(1);opacity:1;}}
+
+  #toast{position:fixed;top:calc(20px + env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:center;z-index:40;pointer-events:none;}
+  .toast-pill{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid rgba(139,107,255,.4);border-radius:999px;padding:7px 16px;animation:floatUp 1.8s ease-out forwards;}
+  .toast-pill .mono{font-size:14px;font-weight:700;}
+
+  #modal:empty{display:none;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:0 32px;z-index:50;}
+  .modal-card{text-align:center;animation:burst .5s cubic-bezier(.34,1.56,.64,1);}
+  .level-badge-lg{
+    width:112px;height:112px;margin:0 auto 20px;
+    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+    background:linear-gradient(145deg,var(--gold),var(--gold-deep));
+    display:flex;align-items:center;justify-content:center;
+    font-size:36px;font-weight:700;color:var(--bg);
+  }
+  .modal-eyebrow{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin:0 0 4px;}
+  .modal-title{font-size:24px;font-weight:700;margin:0 0 24px;}
+  .btn-primary{background:var(--violet);color:#fff;border:none;border-radius:999px;padding:10px 26px;font-size:14px;font-weight:600;}
+
+  .content{padding:0 20px;}
+  .section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .section-title h2{font-size:16px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;}
+  .count-mono{font-size:12px;color:var(--muted);}
+  .perfect-banner{margin-bottom:16px;border-radius:12px;background:linear-gradient(90deg,rgba(255,201,77,.15),transparent);border:1px solid rgba(255,201,77,.3);padding:10px 16px;display:flex;align-items:center;gap:8px;}
+  .perfect-banner p{margin:0;font-size:14px;color:var(--gold);font-weight:500;}
+
+  .pillar-group{margin-bottom:20px;}
+  .pillar-label{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+  .pillar-label span{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .mission-row{display:flex;align-items:center;justify-content:space-between;border-radius:12px;padding:12px 14px;border:1px solid var(--border);background:rgba(20,23,38,.6);margin-bottom:8px;}
+  .mission-row.done{background:var(--panel);border-color:var(--border2);}
+  .mission-left{display:flex;align-items:center;gap:12px;flex:1;background:none;border:none;text-align:left;padding:0;color:inherit;min-width:0;}
+  .checkbox{width:20px;height:20px;border-radius:6px;border:1px solid var(--dim);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .checkbox.checked{border-color:transparent;}
+  .mission-title{font-size:14px;color:var(--text);}
+  .mission-title.done{color:var(--muted);text-decoration:line-through;}
+  .mission-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .xp-tag{font-size:12px;color:var(--muted);}
+  .remove-btn{background:none;border:none;color:var(--dim);padding:4px;display:flex;font-size:14px;}
+
+  .add-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px dashed var(--border3);color:var(--muted);font-size:14px;padding:12px;background:none;margin-top:4px;}
+  .add-form{border-radius:12px;background:var(--panel);border:1px solid var(--border2);padding:14px;margin-top:4px;display:flex;flex-direction:column;gap:10px;}
+  .add-form input,.add-form select{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:14px;color:var(--text);outline:none;width:100%;}
+  .add-form input:focus,.add-form select:focus{border-color:var(--violet);}
+  .add-form-row{display:flex;gap:8px;}
+  .add-form-row select{flex:1;}
+  .add-form-row input[type=number]{width:76px;flex-shrink:0;}
+  .add-form-actions{display:flex;gap:8px;}
+  .btn-save{flex:1;background:var(--violet);color:#fff;border:none;border-radius:8px;padding:9px;font-size:14px;font-weight:600;}
+  .btn-cancel{padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:none;color:var(--muted);font-size:14px;}
+
+  .pillar-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .pillar-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;}
+  .pillar-card-top .left{display:flex;align-items:center;gap:8px;}
+  .pillar-card-top .left span.name{font-size:14px;font-weight:600;}
+  .pillar-track{height:8px;border-radius:999px;background:var(--bg);overflow:hidden;}
+  .pillar-fill{height:100%;border-radius:999px;transition:width .5s;}
+
+  .ach-sub{font-size:12px;color:var(--muted);margin:0 0 16px;}
+  .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .ach-card{border-radius:12px;padding:14px;border:1px solid var(--border);background:var(--panel);}
+  .ach-card.unlocked{background:var(--panel-alt);border-color:rgba(255,201,77,.4);}
+  .ach-icon{font-size:24px;margin-bottom:6px;}
+  .ach-name{font-size:12px;font-weight:600;margin:0 0 2px;color:var(--muted2);line-height:1.3;}
+  .ach-card.unlocked .ach-name{color:var(--text);}
+  .ach-desc{font-size:10px;margin:0;color:var(--muted3);line-height:1.3;}
+  .ach-card.unlocked .ach-desc{color:var(--muted);}
+
+  .chart-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 10px 6px;}
+  .chart{display:flex;align-items:flex-end;gap:3px;height:150px;}
+  .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .chart-bar{width:100%;max-width:16px;background:var(--violet);border-radius:3px 3px 0 0;min-height:2px;}
+  .chart-label{font-size:8px;color:var(--muted);margin-top:5px;white-space:nowrap;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;}
+  .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+  .stat-num{font-size:18px;font-weight:700;margin:0;}
+  .stat-lbl{font-size:10px;color:var(--muted);margin:2px 0 0;}
+
+  .milestone-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+  .milestone-row:last-child{border-bottom:none;}
+  .milestone-info{width:92px;flex-shrink:0;}
+  .milestone-n{display:block;font-size:12px;font-weight:600;}
+  .milestone-d{display:block;font-size:10px;color:var(--muted2);margin-top:1px;}
+  .milestone-pct{width:34px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0;}
+  .attr-row{padding:8px 0;}
+  .attr-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;}
+
+  .navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,12,20,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:9px 16px calc(9px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;z-index:30;}
+  .navbtn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted2);padding:4px 6px;font-size:9.5px;flex:1;min-width:0;}
+  .navbtn.active{color:var(--violet);}
+  .navbtn .ico{font-size:18px;line-height:1;}
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="content"></div>
+</div>
+<div id="toast"></div>
+<div id="modal"></div>
+<script>
+/* ---------- datos ---------- */
+const PILLARS = {
+  disciplina:{label:'Disciplina',icon:'🛡️',color:'#A78BFA'},
+  fisico:{label:'Físico',icon:'💪',color:'#FF8A6A'},
+  mente:{label:'Mente',icon:'🧠',color:'#5EEAD4'},
+  finanzas:{label:'Finanzas',icon:'💰',color:'#F5B942'},
+  objetivos:{label:'Objetivos',icon:'👔',color:'#4ADE80'},
+};
+
+const DEFAULT_MISSIONS = [
+  {id:'d1',pillar:'disciplina',title:'Hacer la cama',xp:5,isDefault:true},
+  {id:'d2',pillar:'disciplina',title:'Completar 3 tareas importantes',xp:15,isDefault:true},
+  {id:'d3',pillar:'disciplina',title:'Dormir antes de las 23:30',xp:10,isDefault:true},
+  {id:'f1',pillar:'fisico',title:'Entrenamiento',xp:15,isDefault:true},
+  {id:'f2',pillar:'fisico',title:'Alimentación limpia',xp:10,isDefault:true},
+  {id:'f3',pillar:'fisico',title:'8.000+ pasos',xp:10,isDefault:true},
+  {id:'m1',pillar:'mente',title:'20 min de aprendizaje',xp:10,isDefault:true},
+  {id:'m2',pillar:'mente',title:'30 min sin scroll',xp:10,isDefault:true},
+  {id:'m3',pillar:'mente',title:'Reflexión / journaling',xp:5,isDefault:true},
+  {id:'fi1',pillar:'finanzas',title:'Registrar gastos del día',xp:10,isDefault:true},
+  {id:'fi2',pillar:'finanzas',title:'Cero gastos impulsivos',xp:10,isDefault:true},
+  {id:'fi3',pillar:'finanzas',title:'Revisar / ahorrar',xp:5,isDefault:true},
+  {id:'o1',pillar:'objetivos',title:'Avanzar en proyecto personal',xp:15,isDefault:true},
+  {id:'o2',pillar:'objetivos',title:'Contacto profesional / networking',xp:10,isDefault:true},
+];
+
+const LEVEL_NAMES = ["Reinicio","Despertar","Constancia","Disciplina","Control","Enfoque","Determinación","Fortaleza","Claridad","Evolución","Impulso","Firmeza","Templanza","Resiliencia","Ascenso","Precisión","Dominio","Confianza","Equilibrio","Maestría","Visión","Coraje","Estrategia","Consistencia","Transformación","Poder","Sabiduría","Presencia","Autoridad","Excelencia","Ímpetu","Voluntad","Serenidad","Grandeza","Trascendencia","Liderazgo","Superación","Vanguardia","Leyenda","Élite","Cúspide","Titán","Referente","Ícono","Imparable","Inquebrantable","Legado","Cima","Apex","LEVEL UP"];
+
+const ACHIEVEMENTS = [
+  {id:'streak_3',name:'Primer impulso',desc:'3 días seguidos',icon:'🔥',check:s=>s.streak>=3},
+  {id:'streak_7',name:'Una semana firme',desc:'7 días seguidos',icon:'🔥',check:s=>s.streak>=7},
+  {id:'streak_14',name:'Costumbre',desc:'14 días seguidos',icon:'🔥',check:s=>s.streak>=14},
+  {id:'streak_30',name:'Hábito de hierro',desc:'30 días seguidos',icon:'🔥',check:s=>s.streak>=30},
+  {id:'streak_60',name:'Imparable',desc:'60 días seguidos',icon:'🔥',check:s=>s.streak>=60},
+  {id:'streak_100',name:'Leyenda',desc:'100 días seguidos',icon:'🔥',check:s=>s.streak>=100},
+  {id:'level_5',name:'En marcha',desc:'Nivel 5',icon:'⚡',check:s=>s.level>=5},
+  {id:'level_10',name:'Evolución',desc:'Nivel 10',icon:'⚡',check:s=>s.level>=10},
+  {id:'level_20',name:'Maestría',desc:'Nivel 20',icon:'⚡',check:s=>s.level>=20},
+  {id:'level_30',name:'Élite',desc:'Nivel 30',icon:'⚡',check:s=>s.level>=30},
+  {id:'level_50',name:'LEVEL UP',desc:'Nivel 50',icon:'👑',check:s=>s.level>=50},
+  {id:'xp_1000',name:'Primeros pasos',desc:'1.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=1000},
+  {id:'xp_5000',name:'Constructor',desc:'5.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=5000},
+  {id:'xp_10000',name:'Veterano',desc:'10.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=10000},
+  {id:'perfect_1',name:'Día perfecto',desc:'Completa todas las misiones de un día',icon:'🏆',check:s=>s.perfectDays>=1},
+  {id:'perfect_10',name:'Perfeccionista',desc:'10 días perfectos',icon:'🏆',check:s=>s.perfectDays>=10},
+];
+
+const STORAGE_KEY = 'levelup-state-v1';
+const todayStr = () => new Date().toISOString().slice(0,10);
+const yesterdayStr = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
+const xpForLevel = level => 100 + (level-1)*40;
+const levelName = level => LEVEL_NAMES[Math.min(level, LEVEL_NAMES.length)-1] || 'Más allá';
+const escapeHtml = str => String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function initialState(){
+  return {
+    level:1, currentXP:0, totalXPEarned:0, streak:0,
+    lastCompletionDate:null, currentDate: todayStr(), completedToday:{},
+    missions: DEFAULT_MISSIONS.map(m=>({...m})),
+    pillarTotals:{disciplina:0,fisico:0,mente:0,finanzas:0,objetivos:0},
+    pillarCompletions:{disciplina:0,fisico:0,mente:0,finanzas:0,objetivos:0},
+    history:[], perfectDays:0, unlockedAchievements:[],
+    weekGoals:{}, milestones:{days30:null,days60:null,days90:null},
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return null;
+}
+function saveState(s){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }catch(e){}
+}
+
+/* ---------- estado ---------- */
+let state = loadState() || initialState();
+if(!state.weekGoals) state.weekGoals = {};
+if(!state.milestones) state.milestones = {days30:null,days60:null,days90:null};
+if(state.currentDate !== todayStr()){
+  state.currentDate = todayStr();
+  state.completedToday = {};
+  saveState(state);
+}
+let tab = 'hoy';
+let showAddForm = false;
+
+/* ---------- mutaciones ---------- */
+function toggleMission(id){
+  const m = state.missions.find(x=>x.id===id);
+  if(!m) return;
+  const isDone = !!state.completedToday[id];
+  const today = todayStr();
+
+  if(isDone){
+    delete state.completedToday[id];
+    state.currentXP = Math.max(0, state.currentXP - m.xp);
+    state.totalXPEarned = Math.max(0, state.totalXPEarned - m.xp);
+    state.pillarTotals[m.pillar] = Math.max(0, state.pillarTotals[m.pillar] - m.xp);
+    state.pillarCompletions[m.pillar] = Math.max(0, state.pillarCompletions[m.pillar] - 1);
+    const h = state.history.find(x=>x.date===today);
+    if(h) h.xp = Math.max(0, h.xp - m.xp);
+    saveState(state);
+    render();
+    return;
+  }
+
+  state.completedToday[id] = true;
+  state.currentXP += m.xp;
+  state.totalXPEarned += m.xp;
+  state.pillarTotals[m.pillar] += m.xp;
+  state.pillarCompletions[m.pillar] += 1;
+  let h = state.history.find(x=>x.date===today);
+  if(h) h.xp += m.xp; else state.history.push({date:today, xp:m.xp});
+
+  if(state.lastCompletionDate === today){ /* mismo día, racha no cambia */ }
+  else if(state.lastCompletionDate === yesterdayStr()) state.streak += 1;
+  else state.streak = 1;
+  state.lastCompletionDate = today;
+
+  let leveledUp = false;
+  while(state.currentXP >= xpForLevel(state.level)){
+    state.currentXP -= xpForLevel(state.level);
+    state.level += 1;
+    leveledUp = true;
+  }
+
+  const doneCount = Object.values(state.completedToday).filter(Boolean).length;
+  if(doneCount === state.missions.length) state.perfectDays += 1;
+
+  ACHIEVEMENTS.forEach(a=>{
+    if(!state.unlockedAchievements.includes(a.id) && a.check(state)) state.unlockedAchievements.push(a.id);
+  });
+
+  saveState(state);
+  render();
+  if(leveledUp) showLevelUp({level:state.level, name:levelName(state.level)});
+  else showToast(m.xp);
+}
+
+function addMission(){
+  const titleEl = document.getElementById('new-title');
+  const xpEl = document.getElementById('new-xp');
+  const pillarEl = document.getElementById('new-pillar');
+  const title = titleEl.value.trim();
+  if(!title) return;
+  const xp = parseInt(xpEl.value,10) || 5;
+  const pillar = pillarEl.value;
+  state.missions.push({id:'c'+Date.now(), pillar, title, xp, isDefault:false});
+  saveState(state);
+  showAddForm = false;
+  render();
+}
+
+function removeMission(id){
+  state.missions = state.missions.filter(m=>m.id!==id);
+  saveState(state);
+  render();
+}
+
+/* ---------- evolución / rpg ---------- */
+const isoDaysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+function activeDaysSince(n){
+  const start = isoDaysAgo(n-1);
+  return state.history.filter(h=>h.date>=start && h.xp>0).length;
+}
+function xpSince(n){
+  const start = isoDaysAgo(n-1);
+  return state.history.filter(h=>h.date>=start).reduce((a,h)=>a+(h.xp||0),0);
+}
+function currentWeekKey(){
+  const d = new Date();
+  const day = (d.getDay()+6)%7; // lunes=0
+  d.setDate(d.getDate()-day);
+  return d.toISOString().slice(0,10);
+}
+function weekGoal(){
+  const key = currentWeekKey();
+  if(!state.weekGoals[key]) state.weekGoals[key] = {target:300};
+  return state.weekGoals[key];
+}
+function weeklyXP(){
+  const start = currentWeekKey();
+  return state.history.filter(h=>h.date>=start).reduce((a,h)=>a+(h.xp||0),0);
+}
+function milestoneStatus(n){
+  const days = activeDaysSince(n);
+  return {days, pct: Math.min(100, Math.round(days/n*100)), complete: days>=n};
+}
+function setWeekGoal(){
+  const g = weekGoal();
+  const v = parseInt(prompt('¿Cuántos XP quieres conseguir esta semana?', g.target) || String(g.target), 10);
+  if(v>0 && v<=5000){ g.target = v; saveState(state); render(); }
+}
+
+/* ---------- overlays ---------- */
+let toastTimer = null;
+function showToast(xp){
+  const el = document.getElementById('toast');
+  el.innerHTML = `<div class="toast-pill"><span>✨</span><span class="mono">+${xp} XP</span></div>`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.innerHTML=''; }, 1800);
+}
+function showLevelUp(info){
+  const el = document.getElementById('modal');
+  el.innerHTML = `
+    <div class="modal-overlay" data-action="close-levelup">
+      <div class="modal-card">
+        <div class="level-badge-lg">${info.level}</div>
+        <p class="modal-eyebrow">Subiste de nivel</p>
+        <h2 class="modal-title">${escapeHtml(info.name)}</h2>
+        <button class="btn-primary" data-action="close-levelup">Seguir</button>
+      </div>
+    </div>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const req = xpForLevel(state.level);
+  const pct = Math.min(100, Math.round((state.currentXP/req)*100));
+  const displayStreak = (state.lastCompletionDate && state.lastCompletionDate >= yesterdayStr()) ? state.streak : 0;
+  const completedCount = Object.values(state.completedToday).filter(Boolean).length;
+  const allDone = state.missions.length>0 && completedCount===state.missions.length;
+
+  let html = '';
+  html += `
+  <div class="header">
+    <div class="top-row">
+      <p class="eyebrow">Tu vida. Tu progreso. Tu juego.</p>
+      <div class="streak-pill"><span style="opacity:${displayStreak>0?1:0.35}">🔥</span><span class="mono" style="font-size:14px;font-weight:600;${displayStreak===0?'color:var(--muted2)':''}">${displayStreak}</span></div>
+    </div>
+    <div class="id-row">
+      <div class="badge-hex"><span>${state.level}</span></div>
+      <div>
+        <p class="id-name">Cristian</p>
+        <p class="id-title">${escapeHtml(levelName(state.level))}</p>
+      </div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-row"><span class="mono">${state.currentXP} / ${req} XP</span><span class="mono">${pct}%</span></div>
+      <div class="xp-track"><div class="xp-fill" style="width:${pct}%"></div></div>
+    </div>
+  </div>
+  <div class="content">`;
+
+  if(window.self !== window.top){
+    html += `<div class="notice">⚠️ Esto se está viendo dentro de Claude. Aquí el guardado NO persiste de verdad. Descárgalo, alójalo (GitHub Pages / Netlify) y ábrelo desde ahí para que la memoria sea real.</div>`;
+  }
+
+  if(tab==='hoy'){
+    html += `<div class="section-title"><h2>🎯 Misión de hoy</h2><span class="count-mono">${completedCount}/${state.missions.length}</span></div>`;
+    if(allDone){
+      html += `<div class="perfect-banner"><span>🏆</span><p>Día perfecto completado 🎉</p></div>`;
+    }
+    Object.entries(PILLARS).forEach(([key,p])=>{
+      const missions = state.missions.filter(m=>m.pillar===key);
+      if(missions.length===0) return;
+      html += `<div class="pillar-group">
+        <div class="pillar-label"><span>${p.icon}</span><span style="color:${p.color}">${p.label}</span></div>`;
+      missions.forEach(m=>{
+        const done = !!state.completedToday[m.id];
+        html += `
+        <div class="mission-row ${done?'done':''}">
+          <button class="mission-left" data-action="toggle" data-id="${m.id}">
+            <span class="checkbox ${done?'checked':''}" style="${done?`background:${p.color}`:''}">${done?`<span style="color:#0B0C14;font-weight:700;font-size:12px;">✓</span>`:''}</span>
+            <span class="mission-title ${done?'done':''}">${escapeHtml(m.title)}</span>
+          </button>
+          <div class="mission-right">
+            <span class="xp-tag mono">+${m.xp}</span>
+            ${!m.isDefault?`<button class="remove-btn" data-action="remove" data-id="${m.id}">✕</button>`:''}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+
+    if(!showAddForm){
+      html += `<button class="add-btn" data-action="show-add">+ Añadir misión</button>`;
+    } else {
+      const options = Object.entries(PILLARS).map(([k,p])=>`<option value="${k}">${p.label}</option>`).join('');
+      html += `
+      <div class="add-form">
+        <input id="new-title" type="text" placeholder="Título de la misión" />
+        <div class="add-form-row">
+          <select id="new-pillar">${options}</select>
+          <input id="new-xp" type="number" value="10" />
+        </div>
+        <div class="add-form-actions">
+          <button class="btn-save" data-action="save-add">Guardar</button>
+          <button class="btn-cancel" data-action="hide-add">Cancelar</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  else if(tab==='pilares'){
+    const maxPillarXP = Math.max(1, ...Object.values(state.pillarTotals));
+    html += `<div class="section-title"><h2>Progreso por pilar</h2></div>`;
+    Object.entries(PILLARS).forEach(([key,p])=>{
+      const val = state.pillarTotals[key];
+      const w = Math.max(4, Math.round((val/maxPillarXP)*100));
+      html += `
+      <div class="pillar-card">
+        <div class="pillar-card-top">
+          <div class="left"><span>${p.icon}</span><span class="name">${p.label}</span></div>
+          <span class="count-mono mono">${val} XP · ${state.pillarCompletions[key]} misiones</span>
+        </div>
+        <div class="pillar-track"><div class="pillar-fill" style="width:${w}%;background:${p.color}"></div></div>
+      </div>`;
+    });
+  }
+
+  else if(tab==='evolucion'){
+    const m30 = milestoneStatus(30), m60 = milestoneStatus(60), m90 = milestoneStatus(90);
+    const goal = weekGoal(); const wXP = weeklyXP(); const goalPct = Math.min(100, Math.round(wXP/goal.target*100));
+    html += `<div class="section-title"><h2>🧬 Evolución</h2></div>
+    <p class="ach-sub">No te compares con otros. Compárate con tu versión anterior.</p>
+    <div class="pillar-card" style="background:linear-gradient(135deg, rgba(139,107,255,.14), rgba(94,234,212,.05));border-color:rgba(139,107,255,.3)">
+      <div class="pillar-card-top">
+        <div class="left"><span>🎯</span><span class="name">Objetivo semanal</span></div>
+        <button class="remove-btn" data-action="edit-goal" style="width:auto;color:var(--violet-light);font-size:12px">Editar</button>
+      </div>
+      <div class="pillar-track"><div class="pillar-fill" style="width:${goalPct}%;background:linear-gradient(90deg,var(--violet),var(--teal))"></div></div>
+      <p class="count-mono mono" style="margin:8px 0 0">${wXP} / ${goal.target} XP esta semana · ${goalPct>=100?'¡Objetivo cumplido! 🎉':'sigue sumando.'}</p>
+    </div>
+    <div class="stat-grid" style="margin-top:0">
+      <div class="stat-card"><p class="stat-num mono">${xpSince(7)}</p><p class="stat-lbl">XP · 7 días</p></div>
+      <div class="stat-card"><p class="stat-num mono">${xpSince(30)}</p><p class="stat-lbl">XP · 30 días</p></div>
+      <div class="stat-card"><p class="stat-num mono">${xpSince(90)}</p><p class="stat-lbl">XP · 90 días</p></div>
+    </div>
+    <div class="pillar-card" style="margin-top:12px">
+      <div class="pillar-card-top"><div class="left"><span>🔥</span><span class="name">Constancia</span></div></div>
+      ${[[30,m30],[60,m60],[90,m90]].map(([n,m])=>`
+        <div class="milestone-row">
+          <div class="milestone-info"><span class="milestone-n mono">${n} días</span><span class="milestone-d">${m.days}/${n} activos</span></div>
+          <div class="pillar-track" style="flex:1"><div class="pillar-fill" style="width:${m.pct}%;background:${m.complete?'var(--green)':'var(--violet)'}"></div></div>
+          <span class="milestone-pct mono">${m.pct}%</span>
+        </div>`).join('')}
+    </div>
+    <div class="pillar-card" style="margin-top:12px">
+      <div class="pillar-card-top"><div class="left"><span>🧭</span><span class="name">Tus atributos</span></div></div>`;
+    const maxAttr = Math.max(1, ...Object.values(state.pillarTotals));
+    Object.entries(PILLARS).forEach(([key,p])=>{
+      const val = state.pillarTotals[key];
+      const w = Math.max(3, Math.round((val/maxAttr)*100));
+      html += `<div class="attr-row">
+        <div class="attr-top"><span>${p.icon} ${p.label}</span><span class="mono">${val} XP</span></div>
+        <div class="pillar-track"><div class="pillar-fill" style="width:${w}%;background:${p.color}"></div></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  else if(tab==='logros'){
+    html += `<div class="section-title"><h2>Logros</h2></div>
+    <p class="ach-sub">${state.unlockedAchievements.length} / ${ACHIEVEMENTS.length} desbloqueados</p>
+    <div class="ach-grid">`;
+    ACHIEVEMENTS.forEach(a=>{
+      const unlocked = state.unlockedAchievements.includes(a.id);
+      html += `
+      <div class="ach-card ${unlocked?'unlocked':''}">
+        <div class="ach-icon">${unlocked?a.icon:'🔒'}</div>
+        <p class="ach-name">${escapeHtml(a.name)}</p>
+        <p class="ach-desc">${escapeHtml(a.desc)}</p>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  else if(tab==='historial'){
+    const days = [];
+    for(let i=13;i>=0;i--){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const ds = d.toISOString().slice(0,10);
+      const found = state.history.find(h=>h.date===ds);
+      days.push({date: ds.slice(5), xp: found?found.xp:0});
+    }
+    const maxXp = Math.max(1, ...days.map(d=>d.xp));
+    html += `<div class="section-title"><h2>📈 Últimos 14 días</h2></div>
+    <p class="ach-sub">XP acumulada por día · ${state.totalXPEarned} XP totales</p>
+    <div class="chart-card"><div class="chart">`;
+    days.forEach((d,i)=>{
+      html += `<div class="chart-col">
+        <div class="chart-bar" style="height:${Math.max(3,(d.xp/maxXp)*100)}%"></div>
+        <span class="chart-label">${i%2===0?d.date:''}</span>
+      </div>`;
+    });
+    html += `</div></div>
+    <div class="stat-grid">
+      <div class="stat-card"><p class="stat-num mono" style="color:var(--gold)">${state.level}</p><p class="stat-lbl">Nivel</p></div>
+      <div class="stat-card"><p class="stat-num mono" style="color:var(--coral)">${displayStreak}</p><p class="stat-lbl">Racha</p></div>
+      <div class="stat-card"><p class="stat-num mono" style="color:var(--green)">${state.perfectDays}</p><p class="stat-lbl">Días perfectos</p></div>
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  const tabs = [
+    {id:'hoy', label:'Hoy', icon:'🎯'},
+    {id:'pilares', label:'Pilares', icon:'🛡️'},
+    {id:'evolucion', label:'Evolución', icon:'🧬'},
+    {id:'logros', label:'Logros', icon:'🏆'},
+    {id:'historial', label:'Historial', icon:'📈'},
+  ];
+  html += `<div class="navbar">`;
+  tabs.forEach(t=>{
+    html += `<button class="navbtn ${tab===t.id?'active':''}" data-action="tab" data-tab="${t.id}">
+      <span class="ico">${t.icon}</span><span>${t.label}</span>
+    </button>`;
+  });
+  html += `</div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+/* ---------- eventos (delegación, un único listener) ---------- */
+document.body.addEventListener('click', (e)=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const action = el.dataset.action;
+  if(action==='tab'){ tab = el.dataset.tab; showAddForm=false; render(); }
+  else if(action==='toggle'){ toggleMission(el.dataset.id); }
+  else if(action==='remove'){ e.stopPropagation(); removeMission(el.dataset.id); }
+  else if(action==='show-add'){ showAddForm=true; render(); }
+  else if(action==='hide-add'){ showAddForm=false; render(); }
+  else if(action==='save-add'){ addMission(); }
+  else if(action==='edit-goal'){ setWeekGoal(); }
+  else if(action==='close-levelup'){ document.getElementById('modal').innerHTML=''; }
+});
+
+render();
+
+if('serviceWorker' in navigator && window.self === window.top){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
