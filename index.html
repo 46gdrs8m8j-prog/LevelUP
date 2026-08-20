@@ -144,10 +144,19 @@
   .attr-row{padding:8px 0;}
   .attr-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;}
 
-  .navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,12,20,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:9px 16px calc(9px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;z-index:30;}
-  .navbtn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted2);padding:4px 6px;font-size:9.5px;flex:1;min-width:0;}
+  .rank-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);}
+  .rank-row:last-child{border-bottom:none;}
+  .rank-row.mine{background:rgba(139,107,255,.1);border-radius:10px;padding:11px 10px;margin:0 -10px;border-bottom-color:transparent;}
+  .rank-pos{width:24px;text-align:center;font-size:13px;flex-shrink:0;}
+  .rank-body{flex:1;min-width:0;}
+  .rank-name{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rank-meta{display:block;font-size:10px;color:var(--muted2);margin-top:2px;}
+  .rank-xp{font-size:13px;color:var(--gold);font-weight:700;flex-shrink:0;}
+
+  .navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,12,20,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;z-index:30;}
+  .navbtn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted2);padding:4px 2px;font-size:8.5px;flex:1;min-width:0;}
   .navbtn.active{color:var(--violet);}
-  .navbtn .ico{font-size:18px;line-height:1;}
+  .navbtn .ico{font-size:17px;line-height:1;}
 </style>
 </head>
 <body>
@@ -156,6 +165,9 @@
 </div>
 <div id="toast"></div>
 <div id="modal"></div>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script>
 /* ---------- datos ---------- */
 const PILLARS = {
@@ -220,6 +232,7 @@ function initialState(){
     pillarCompletions:{disciplina:0,fisico:0,mente:0,finanzas:0,objetivos:0},
     history:[], perfectDays:0, unlockedAchievements:[],
     weekGoals:{}, milestones:{days30:null,days60:null,days90:null},
+    playerName:null, pillarLabels:{}, pillarIcons:{},
   };
 }
 
@@ -232,12 +245,100 @@ function loadState(){
 }
 function saveState(s){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }catch(e){}
+  syncLeaderboard();
+}
+
+/* ---------- ranking compartido (Firebase) ---------- */
+// 1) Crea un proyecto gratis en https://console.firebase.google.com (no pide tarjeta)
+// 2) Activa "Firestore Database" y en Authentication activa el método "Anonymous"
+// 3) Ve a Configuración del proyecto > tus apps > SDK y pega esos valores aquí abajo
+const firebaseConfig = {
+  apiKey: "AIzaSyBZlpADyfkHuX1Bt2QIBRMIMGZQB2ftDR4",
+  authDomain: "levelup-edfbc.firebaseapp.com",
+  projectId: "levelup-edfbc",
+  storageBucket: "levelup-edfbc.firebasestorage.app",
+  messagingSenderId: "197676172038",
+  appId: "1:197676172038:web:e8f4d615b82733670d9487"
+};
+const RANKING_ENABLED = firebaseConfig.apiKey !== "PEGA_TU_API_KEY_AQUI";
+let authUid = null;
+let db = null;
+if(RANKING_ENABLED){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    firebase.auth().onAuthStateChanged(user=>{
+      if(user){ authUid = user.uid; syncLeaderboard(); }
+    });
+    firebase.auth().signInAnonymously().catch(()=>{});
+  }catch(e){ console.warn('Firebase no disponible', e); }
+}
+let syncTimer = null;
+function syncLeaderboard(){
+  if(!RANKING_ENABLED || !db || !authUid) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>{
+    const displayStreakNow = (state.lastCompletionDate && state.lastCompletionDate >= yesterdayStr()) ? state.streak : 0;
+    db.collection('players').doc(authUid).set({
+      uid: authUid,
+      name: state.playerName || 'Jugador',
+      level: state.level,
+      totalXPEarned: state.totalXPEarned,
+      streak: displayStreakNow,
+      perfectDays: state.perfectDays,
+      achievements: state.unlockedAchievements.length,
+      updatedAt: Date.now(),
+    }, {merge:true}).catch(()=>{});
+  }, 700);
+}
+let leaderboardCache = null, leaderboardLoading = false, leaderboardError = false;
+function loadLeaderboard(force){
+  if(!RANKING_ENABLED || !db) return;
+  if(leaderboardLoading) return;
+  if(!force && leaderboardCache && (Date.now()-leaderboardCache.ts<20000)) return;
+  leaderboardLoading = true; leaderboardError = false;
+  db.collection('players').orderBy('totalXPEarned','desc').limit(50).get().then(snap=>{
+    const rows = [];
+    snap.forEach(doc=>rows.push(doc.data()));
+    leaderboardCache = { ts: Date.now(), rows };
+    leaderboardLoading = false;
+    render();
+  }).catch(()=>{ leaderboardLoading=false; leaderboardError=true; render(); });
+}
+function ensureName(){
+  if(!state.playerName){
+    const n = (prompt('¿Cómo te llamas? Así te van a ver en el ranking.') || '').trim();
+    state.playerName = n || 'Jugador';
+    saveState(state);
+  }
+}
+function editName(){
+  const n = (prompt('Tu nombre', state.playerName || '') || '').trim();
+  if(n){ state.playerName = n; saveState(state); render(); }
+}
+function pLabel(key){ return (state.pillarLabels && state.pillarLabels[key]) || PILLARS[key].label; }
+function pIcon(key){ return (state.pillarIcons && state.pillarIcons[key]) || PILLARS[key].icon; }
+function editPillar(key){
+  const newLabel = (prompt('Nombre del pilar', pLabel(key)) || '').trim();
+  if(!newLabel) return;
+  if(!state.pillarLabels) state.pillarLabels = {};
+  state.pillarLabels[key] = newLabel;
+  const newIcon = (prompt('Ícono del pilar (pega un emoji)', pIcon(key)) || '').trim();
+  if(newIcon){
+    if(!state.pillarIcons) state.pillarIcons = {};
+    state.pillarIcons[key] = newIcon;
+  }
+  saveState(state);
+  render();
 }
 
 /* ---------- estado ---------- */
 let state = loadState() || initialState();
 if(!state.weekGoals) state.weekGoals = {};
 if(!state.milestones) state.milestones = {days30:null,days60:null,days90:null};
+if(state.playerName === undefined) state.playerName = null;
+if(!state.pillarLabels) state.pillarLabels = {};
+if(!state.pillarIcons) state.pillarIcons = {};
 if(state.currentDate !== todayStr()){
   state.currentDate = todayStr();
   state.completedToday = {};
@@ -315,6 +416,29 @@ function addMission(){
 
 function removeMission(id){
   state.missions = state.missions.filter(m=>m.id!==id);
+  delete state.completedToday[id];
+  saveState(state);
+  render();
+}
+
+function editMission(id){
+  const m = state.missions.find(x=>x.id===id);
+  if(!m) return;
+  const newTitle = (prompt('Nombre de la misión', m.title) || '').trim();
+  if(!newTitle) return;
+  m.title = newTitle;
+  const newXpRaw = parseInt(prompt('XP que otorga', m.xp) || String(m.xp), 10);
+  const newXp = (newXpRaw > 0 && newXpRaw <= 100) ? newXpRaw : m.xp;
+  const delta = newXp - m.xp;
+  if(delta !== 0 && state.completedToday[id]){
+    // ya estaba marcada hoy: ajusta lo ya sumado para que no quede descuadrado
+    state.currentXP = Math.max(0, state.currentXP + delta);
+    state.totalXPEarned = Math.max(0, state.totalXPEarned + delta);
+    state.pillarTotals[m.pillar] = Math.max(0, state.pillarTotals[m.pillar] + delta);
+    const h = state.history.find(x=>x.date===todayStr());
+    if(h) h.xp = Math.max(0, h.xp + delta);
+  }
+  m.xp = newXp;
   saveState(state);
   render();
 }
@@ -393,7 +517,7 @@ function render(){
     <div class="id-row">
       <div class="badge-hex"><span>${state.level}</span></div>
       <div>
-        <p class="id-name">Cristian</p>
+        <p class="id-name" data-action="edit-name">${escapeHtml(state.playerName || 'Jugador')} <span style="opacity:.4;font-size:12px;font-weight:400">✎</span></p>
         <p class="id-title">${escapeHtml(levelName(state.level))}</p>
       </div>
     </div>
@@ -417,7 +541,7 @@ function render(){
       const missions = state.missions.filter(m=>m.pillar===key);
       if(missions.length===0) return;
       html += `<div class="pillar-group">
-        <div class="pillar-label"><span>${p.icon}</span><span style="color:${p.color}">${p.label}</span></div>`;
+        <div class="pillar-label"><span>${pIcon(key)}</span><span style="color:${p.color}">${pLabel(key)}</span></div>`;
       missions.forEach(m=>{
         const done = !!state.completedToday[m.id];
         html += `
@@ -428,7 +552,8 @@ function render(){
           </button>
           <div class="mission-right">
             <span class="xp-tag mono">+${m.xp}</span>
-            ${!m.isDefault?`<button class="remove-btn" data-action="remove" data-id="${m.id}">✕</button>`:''}
+            <button class="remove-btn" data-action="edit-mission" data-id="${m.id}">✎</button>
+            <button class="remove-btn" data-action="remove" data-id="${m.id}">✕</button>
           </div>
         </div>`;
       });
@@ -438,7 +563,7 @@ function render(){
     if(!showAddForm){
       html += `<button class="add-btn" data-action="show-add">+ Añadir misión</button>`;
     } else {
-      const options = Object.entries(PILLARS).map(([k,p])=>`<option value="${k}">${p.label}</option>`).join('');
+      const options = Object.entries(PILLARS).map(([k,p])=>`<option value="${k}">${pIcon(k)} ${pLabel(k)}</option>`).join('');
       html += `
       <div class="add-form">
         <input id="new-title" type="text" placeholder="Título de la misión" />
@@ -456,14 +581,15 @@ function render(){
 
   else if(tab==='pilares'){
     const maxPillarXP = Math.max(1, ...Object.values(state.pillarTotals));
-    html += `<div class="section-title"><h2>Progreso por pilar</h2></div>`;
+    html += `<div class="section-title"><h2>Progreso por pilar</h2></div>
+    <p class="ach-sub">Toca el nombre de un pilar para ponerle el tuyo</p>`;
     Object.entries(PILLARS).forEach(([key,p])=>{
       const val = state.pillarTotals[key];
       const w = Math.max(4, Math.round((val/maxPillarXP)*100));
       html += `
       <div class="pillar-card">
         <div class="pillar-card-top">
-          <div class="left"><span>${p.icon}</span><span class="name">${p.label}</span></div>
+          <div class="left" data-action="edit-pillar" data-key="${key}"><span>${pIcon(key)}</span><span class="name">${escapeHtml(pLabel(key))} <span style="opacity:.4;font-size:11px;font-weight:400">✎</span></span></div>
           <span class="count-mono mono">${val} XP · ${state.pillarCompletions[key]} misiones</span>
         </div>
         <div class="pillar-track"><div class="pillar-fill" style="width:${w}%;background:${p.color}"></div></div>
@@ -505,11 +631,36 @@ function render(){
       const val = state.pillarTotals[key];
       const w = Math.max(3, Math.round((val/maxAttr)*100));
       html += `<div class="attr-row">
-        <div class="attr-top"><span>${p.icon} ${p.label}</span><span class="mono">${val} XP</span></div>
+        <div class="attr-top"><span>${pIcon(key)} ${pLabel(key)}</span><span class="mono">${val} XP</span></div>
         <div class="pillar-track"><div class="pillar-fill" style="width:${w}%;background:${p.color}"></div></div>
       </div>`;
     });
     html += `</div>`;
+  }
+
+  else if(tab==='ranking'){
+    html += `<div class="section-title"><h2>🏅 Ranking</h2></div>`;
+    if(!RANKING_ENABLED){
+      html += `<div class="pillar-card"><p class="ach-sub" style="margin:0">El ranking compartido todavía no está activado en esta copia de la app.</p></div>`;
+    } else if(leaderboardError){
+      html += `<div class="pillar-card"><p class="ach-sub" style="margin:0 0 10px">No se pudo cargar el ranking.</p><button class="add-btn" data-action="reload-ranking">Reintentar</button></div>`;
+    } else if(!leaderboardCache){
+      html += `<div class="pillar-card"><p class="ach-sub" style="margin:0">Cargando ranking…</p></div>`;
+    } else if(leaderboardCache.rows.length===0){
+      html += `<div class="pillar-card"><p class="ach-sub" style="margin:0">Todavía nadie tiene puntos — ¡sé el primero en sumar XP!</p></div>`;
+    } else {
+      html += `<p class="ach-sub">Por XP total · toca tu nombre arriba para cambiarlo</p><div class="pillar-card">`;
+      leaderboardCache.rows.forEach((p,i)=>{
+        const mine = authUid && p.uid === authUid;
+        const pos = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+        html += `<div class="rank-row ${mine?'mine':''}">
+          <span class="rank-pos mono">${pos}</span>
+          <div class="rank-body"><span class="rank-name">${escapeHtml(p.name||'Jugador')}${mine?' · tú':''}</span><span class="rank-meta mono">Nv.${p.level||1} · 🔥${p.streak||0}</span></div>
+          <span class="rank-xp mono">${p.totalXPEarned||0}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
   }
 
   else if(tab==='logros'){
@@ -560,6 +711,7 @@ function render(){
     {id:'hoy', label:'Hoy', icon:'🎯'},
     {id:'pilares', label:'Pilares', icon:'🛡️'},
     {id:'evolucion', label:'Evolución', icon:'🧬'},
+    {id:'ranking', label:'Ranking', icon:'🏅'},
     {id:'logros', label:'Logros', icon:'🏆'},
     {id:'historial', label:'Historial', icon:'📈'},
   ];
@@ -579,16 +731,21 @@ document.body.addEventListener('click', (e)=>{
   const el = e.target.closest('[data-action]');
   if(!el) return;
   const action = el.dataset.action;
-  if(action==='tab'){ tab = el.dataset.tab; showAddForm=false; render(); }
+  if(action==='tab'){ tab = el.dataset.tab; showAddForm=false; if(tab==='ranking') loadLeaderboard(); render(); }
   else if(action==='toggle'){ toggleMission(el.dataset.id); }
   else if(action==='remove'){ e.stopPropagation(); removeMission(el.dataset.id); }
+  else if(action==='edit-mission'){ e.stopPropagation(); editMission(el.dataset.id); }
   else if(action==='show-add'){ showAddForm=true; render(); }
   else if(action==='hide-add'){ showAddForm=false; render(); }
   else if(action==='save-add'){ addMission(); }
   else if(action==='edit-goal'){ setWeekGoal(); }
+  else if(action==='edit-name'){ editName(); }
+  else if(action==='edit-pillar'){ editPillar(el.dataset.key); }
+  else if(action==='reload-ranking'){ loadLeaderboard(true); render(); }
   else if(action==='close-levelup'){ document.getElementById('modal').innerHTML=''; }
 });
 
+ensureName();
 render();
 
 if('serviceWorker' in navigator && window.self === window.top){
