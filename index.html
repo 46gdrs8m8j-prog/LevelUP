@@ -153,8 +153,27 @@
   .rank-meta{display:block;font-size:10px;color:var(--muted2);margin-top:2px;}
   .rank-xp{font-size:13px;color:var(--gold);font-weight:700;flex-shrink:0;}
 
-  .navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,12,20,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;z-index:30;}
-  .navbtn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted2);padding:4px 2px;font-size:8.5px;flex:1;min-width:0;}
+  .reg-toggle{display:flex;gap:8px;margin-bottom:16px;}
+  .reg-tab{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:13px;font-weight:600;color:var(--muted);}
+  .reg-tab.active{background:var(--violet);border-color:var(--violet);color:#fff;}
+  .today-ex-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+  .today-ex-row:last-child{border-bottom:none;}
+  .today-ex-row .name{font-size:13.5px;}
+  .pillar-row-tap{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);}
+  .pillar-row-tap:last-child{border-bottom:none;}
+  .pillar-row-tap .name{font-size:13.5px;font-weight:500;}
+  .back-link{background:none;border:none;color:var(--violet-light);font-size:13px;padding:4px 0 12px;display:block;}
+  .ex-hist-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .ex-hist-row:last-child{border-bottom:none;}
+  .notes-textarea{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;min-height:70px;margin-top:8px;box-sizing:border-box;}
+  .diet-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+  .diet-row:last-child{border-bottom:none;}
+  .diet-date{display:block;font-size:11px;color:var(--muted);}
+  .diet-note{display:block;font-size:12px;color:var(--muted2);margin-top:2px;line-height:1.4;}
+
+  .navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,12,20,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 4px calc(8px + env(safe-area-inset-bottom));display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;z-index:30;}
+  .navbar::-webkit-scrollbar{display:none;}
+  .navbtn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted2);padding:4px 10px;font-size:9px;flex:0 0 auto;min-width:52px;}
   .navbtn.active{color:var(--violet);}
   .navbtn .ico{font-size:17px;line-height:1;}
 </style>
@@ -195,7 +214,7 @@ const DEFAULT_MISSIONS = [
   {id:'o2',pillar:'objetivos',title:'Contacto profesional / networking',xp:10,isDefault:true},
 ];
 
-const LEVEL_NAMES = ["Reinicio","Despertar","Constancia","Disciplina","Control","Enfoque","Determinación","Fortaleza","Claridad","Evolución","Impulso","Firmeza","Templanza","Resiliencia","Ascenso","Precisión","Dominio","Confianza","Equilibrio","Maestría","Visión","Coraje","Estrategia","Consistencia","Transformación","Poder","Sabiduría","Presencia","Autoridad","Excelencia","Ímpetu","Voluntad","Serenidad","Grandeza","Trascendencia","Liderazgo","Superación","Vanguardia","Leyenda","Élite","Cúspide","Titán","Referente","Ícono","Imparable","Inquebrantable","Legado","Cima","Apex","LEVEL UP"];
+const LEVEL_NAMES = ["Reinicio","Despertar","Constancia","Disciplina","Control","Enfoque","Determinación","Fortaleza","Claridad","Evolución","Impulso","Firmeza","Templanza","Resiliencia","Ascenso","Precisión","Dominio","Confianza","Equilibrio","Maestría","Visión","Coraje","Estrategia","Consistencia","Transformación","Poder","Sabiduría","Presencia","Autoridad","Excelencia","Ímpetu","Voluntad","Serenidad","Grandeza","Trascendencia","Liderazgo","Superación","Vanguardia","Leyenda","Élite","Cúspide","Titán","Referente","Ícono","Imparable","Inquebrantable","Legado","Cima","Apex","LEVEL UP","Renacer","Metamorfosis","Plenitud","Sinergia","Armonía","Diamante","Fénix","Zenit","Culmen","Vórtice","Arquitecto","Forjador","Alquimista","Vigor","Bastión","Centinela","Guardián","Vigía","Paladín","Campeón","Vencedor","Triunfo","Gloria","Honor","Nobleza","Majestad","Soberano","Monarca","Emperador","Supremacía","Infinito","Eterno","Absoluto","Cósmico","Estelar","Galáctico","Universal","Visionario","Ancestral","Primordial","Génesis","Singular","Excepcional","Extraordinario","Sublime","Insuperable","Mítico","Inmortal","Trascendente","ASCENSIÓN FINAL"];
 
 const ACHIEVEMENTS = [
   {id:'streak_3',name:'Primer impulso',desc:'3 días seguidos',icon:'🔥',check:s=>s.streak>=3},
@@ -214,6 +233,38 @@ const ACHIEVEMENTS = [
   {id:'xp_10000',name:'Veterano',desc:'10.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=10000},
   {id:'perfect_1',name:'Día perfecto',desc:'Completa todas las misiones de un día',icon:'🏆',check:s=>s.perfectDays>=1},
   {id:'perfect_10',name:'Perfeccionista',desc:'10 días perfectos',icon:'🏆',check:s=>s.perfectDays>=10},
+  {id:'streak_150',name:'Roca',desc:'150 días seguidos',icon:'🔥',check:s=>s.streak>=150},
+  {id:'streak_200',name:'Titanio',desc:'200 días seguidos',icon:'🔥',check:s=>s.streak>=200},
+  {id:'streak_365',name:'Un año entero',desc:'365 días seguidos',icon:'🔥',check:s=>s.streak>=365},
+  {id:'level_40',name:'Ascenso constante',desc:'Nivel 40',icon:'⚡',check:s=>s.level>=40},
+  {id:'level_60',name:'Sobrehumano',desc:'Nivel 60',icon:'⚡',check:s=>s.level>=60},
+  {id:'level_70',name:'Referente absoluto',desc:'Nivel 70',icon:'⚡',check:s=>s.level>=70},
+  {id:'level_80',name:'Casi mítico',desc:'Nivel 80',icon:'⚡',check:s=>s.level>=80},
+  {id:'level_90',name:'A un paso',desc:'Nivel 90',icon:'⚡',check:s=>s.level>=90},
+  {id:'level_100',name:'Ascensión final',desc:'Nivel 100 — el máximo',icon:'👑',check:s=>s.level>=100},
+  {id:'xp_25000',name:'Motor imparable',desc:'25.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=25000},
+  {id:'xp_50000',name:'Máquina',desc:'50.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=50000},
+  {id:'xp_100000',name:'Titán de XP',desc:'100.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=100000},
+  {id:'xp_200000',name:'Leyenda de XP',desc:'200.000 XP totales',icon:'⭐',check:s=>s.totalXPEarned>=200000},
+  {id:'perfect_25',name:'Precisión total',desc:'25 días perfectos',icon:'🏆',check:s=>s.perfectDays>=25},
+  {id:'perfect_50',name:'Sin fisuras',desc:'50 días perfectos',icon:'🏆',check:s=>s.perfectDays>=50},
+  {id:'perfect_100',name:'Impecable',desc:'100 días perfectos',icon:'🏆',check:s=>s.perfectDays>=100},
+  {id:'pillar_disciplina',icon:'🛡️',name:s=>`Domina ${pLabel('disciplina')}`,desc:s=>`300 XP en ${pLabel('disciplina')}`,check:s=>(s.pillarTotals.disciplina||0)>=300},
+  {id:'pillar_fisico',icon:'💪',name:s=>`Domina ${pLabel('fisico')}`,desc:s=>`300 XP en ${pLabel('fisico')}`,check:s=>(s.pillarTotals.fisico||0)>=300},
+  {id:'pillar_mente',icon:'🧠',name:s=>`Domina ${pLabel('mente')}`,desc:s=>`300 XP en ${pLabel('mente')}`,check:s=>(s.pillarTotals.mente||0)>=300},
+  {id:'pillar_finanzas',icon:'💰',name:s=>`Domina ${pLabel('finanzas')}`,desc:s=>`300 XP en ${pLabel('finanzas')}`,check:s=>(s.pillarTotals.finanzas||0)>=300},
+  {id:'pillar_objetivos',icon:'👔',name:s=>`Domina ${pLabel('objetivos')}`,desc:s=>`300 XP en ${pLabel('objetivos')}`,check:s=>(s.pillarTotals.objetivos||0)>=300},
+  {id:'custom_3',name:'Personalización',desc:'Crea 3 misiones propias',icon:'🧩',check:s=>s.missions.filter(m=>!m.isDefault).length>=3},
+  {id:'custom_10',name:'Diseñador de hábitos',desc:'Crea 10 misiones propias',icon:'🧩',check:s=>s.missions.filter(m=>!m.isDefault).length>=10},
+  {id:'gym_first',name:'Primer entreno',desc:'Registra tu primer ejercicio',icon:'🏋️',check:s=>Object.values(s.gymLog||{}).some(d=>d.exercises&&d.exercises.length>0)},
+  {id:'gym_10',name:'Rutina en marcha',desc:'10 días de gimnasio registrados',icon:'🏋️',check:s=>Object.values(s.gymLog||{}).filter(d=>d.went).length>=10},
+  {id:'gym_50',name:'Hierro constante',desc:'50 días de gimnasio registrados',icon:'🏋️',check:s=>Object.values(s.gymLog||{}).filter(d=>d.went).length>=50},
+  {id:'gym_100',name:'Bestia de gimnasio',desc:'100 días de gimnasio registrados',icon:'🏋️',check:s=>Object.values(s.gymLog||{}).filter(d=>d.went).length>=100},
+  {id:'diet_7',name:'Primera semana limpia',desc:'7 días siguiendo tu dieta',icon:'🥗',check:s=>Object.values(s.dietLog||{}).filter(d=>d.followed).length>=7},
+  {id:'diet_30',name:'Disciplina de plato',desc:'30 días siguiendo tu dieta',icon:'🥗',check:s=>Object.values(s.dietLog||{}).filter(d=>d.followed).length>=30},
+  {id:'diet_100',name:'Nutrición dominada',desc:'100 días siguiendo tu dieta',icon:'🥗',check:s=>Object.values(s.dietLog||{}).filter(d=>d.followed).length>=100},
+  {id:'collector_25',name:'Coleccionista',desc:'Desbloquea 25 logros',icon:'🎖️',check:s=>s.unlockedAchievements.length>=25},
+  {id:'collector_all',name:'Completista',desc:'Desbloquea todos los logros',icon:'🎖️',check:s=>s.unlockedAchievements.length>=ACHIEVEMENTS.length-1},
 ];
 
 const STORAGE_KEY = 'levelup-state-v1';
@@ -233,6 +284,8 @@ function initialState(){
     history:[], perfectDays:0, unlockedAchievements:[],
     weekGoals:{}, milestones:{days30:null,days60:null,days90:null},
     playerName:null, pillarLabels:{}, pillarIcons:{},
+    gymLog:{}, dietLog:{},
+    exerciseNames:['Press banca','Sentadilla','Peso muerto','Press militar','Dominadas','Remo con barra','Curl de bíceps','Extensión de tríceps','Press inclinado','Zancadas'],
   };
 }
 
@@ -332,6 +385,66 @@ function editPillar(key){
   render();
 }
 
+/* ---------- gimnasio y dieta ---------- */
+function toggleGymDay(){
+  const today = todayStr();
+  if(!state.gymLog[today]) state.gymLog[today] = {went:false, exercises:[]};
+  state.gymLog[today].went = !state.gymLog[today].went;
+  checkAchievements();
+  saveState(state);
+  render();
+}
+function addExercise(){
+  const nameEl = document.getElementById('ex-name');
+  const kgEl = document.getElementById('ex-kg');
+  const repsEl = document.getElementById('ex-reps');
+  const name = nameEl.value.trim();
+  if(!name) return;
+  const kg = parseFloat(kgEl.value) || 0;
+  const reps = parseInt(repsEl.value,10) || 0;
+  const today = todayStr();
+  if(!state.gymLog[today]) state.gymLog[today] = {went:true, exercises:[]};
+  state.gymLog[today].went = true;
+  state.gymLog[today].exercises.push({id:'x'+Date.now(), name, kg, reps});
+  if(!state.exerciseNames.includes(name)) state.exerciseNames.push(name);
+  checkAchievements();
+  saveState(state);
+  render();
+}
+function removeExercise(date, id){
+  if(state.gymLog[date]) state.gymLog[date].exercises = state.gymLog[date].exercises.filter(e=>e.id!==id);
+  saveState(state);
+  render();
+}
+function exerciseHistory(name){
+  const rows = [];
+  Object.keys(state.gymLog).sort().forEach(date=>{
+    (state.gymLog[date].exercises||[]).forEach(e=>{ if(e.name===name) rows.push({date, kg:e.kg, reps:e.reps}); });
+  });
+  return rows;
+}
+function allExerciseNames(){
+  const set = new Set(state.exerciseNames||[]);
+  Object.values(state.gymLog).forEach(day=>(day.exercises||[]).forEach(e=>set.add(e.name)));
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
+}
+function toggleDietDay(){
+  const today = todayStr();
+  if(!state.dietLog[today]) state.dietLog[today] = {followed:false, notes:''};
+  state.dietLog[today].followed = !state.dietLog[today].followed;
+  checkAchievements();
+  saveState(state);
+  render();
+}
+function saveDietNotes(){
+  const notesEl = document.getElementById('diet-notes');
+  const today = todayStr();
+  if(!state.dietLog[today]) state.dietLog[today] = {followed:false, notes:''};
+  state.dietLog[today].notes = notesEl.value;
+  saveState(state);
+  render();
+}
+
 /* ---------- estado ---------- */
 let state = loadState() || initialState();
 if(!state.weekGoals) state.weekGoals = {};
@@ -339,6 +452,9 @@ if(!state.milestones) state.milestones = {days30:null,days60:null,days90:null};
 if(state.playerName === undefined) state.playerName = null;
 if(!state.pillarLabels) state.pillarLabels = {};
 if(!state.pillarIcons) state.pillarIcons = {};
+if(!state.gymLog) state.gymLog = {};
+if(!state.dietLog) state.dietLog = {};
+if(!state.exerciseNames) state.exerciseNames = ['Press banca','Sentadilla','Peso muerto','Press militar','Dominadas','Remo con barra','Curl de bíceps','Extensión de tríceps','Press inclinado','Zancadas'];
 if(state.currentDate !== todayStr()){
   state.currentDate = todayStr();
   state.completedToday = {};
@@ -346,6 +462,9 @@ if(state.currentDate !== todayStr()){
 }
 let tab = 'hoy';
 let showAddForm = false;
+let registroSub = 'gym';
+let selectedExercise = null;
+let showAddExercise = false;
 
 /* ---------- mutaciones ---------- */
 function toggleMission(id){
@@ -390,14 +509,17 @@ function toggleMission(id){
   const doneCount = Object.values(state.completedToday).filter(Boolean).length;
   if(doneCount === state.missions.length) state.perfectDays += 1;
 
-  ACHIEVEMENTS.forEach(a=>{
-    if(!state.unlockedAchievements.includes(a.id) && a.check(state)) state.unlockedAchievements.push(a.id);
-  });
+  checkAchievements();
 
   saveState(state);
   render();
   if(leveledUp) showLevelUp({level:state.level, name:levelName(state.level)});
   else showToast(m.xp);
+}
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(!state.unlockedAchievements.includes(a.id) && a.check(state)) state.unlockedAchievements.push(a.id);
+  });
 }
 
 function addMission(){
@@ -409,6 +531,7 @@ function addMission(){
   const xp = parseInt(xpEl.value,10) || 5;
   const pillar = pillarEl.value;
   state.missions.push({id:'c'+Date.now(), pillar, title, xp, isDefault:false});
+  checkAchievements();
   saveState(state);
   showAddForm = false;
   render();
@@ -597,6 +720,109 @@ function render(){
     });
   }
 
+  else if(tab==='registro'){
+    html += `<div class="section-title"><h2>🏋️ Registro</h2></div>
+    <div class="reg-toggle">
+      <button class="reg-tab ${registroSub==='gym'?'active':''}" data-action="reg-sub" data-sub="gym">💪 Gimnasio</button>
+      <button class="reg-tab ${registroSub==='diet'?'active':''}" data-action="reg-sub" data-sub="diet">🥗 Dieta</button>
+    </div>`;
+
+    if(registroSub==='gym'){
+      if(selectedExercise){
+        const hist = exerciseHistory(selectedExercise);
+        const first = hist[0], last = hist[hist.length-1];
+        const delta = (first && last) ? Math.round((last.kg-first.kg)*10)/10 : 0;
+        html += `<button class="back-link" data-action="back-exercise">← Todos los ejercicios</button>
+        <div class="pillar-card">
+          <div class="pillar-card-top"><div class="left"><span>💪</span><span class="name">${escapeHtml(selectedExercise)}</span></div></div>
+          ${hist.length>1?`<p class="ach-sub" style="margin:4px 0 0">${first.kg}kg → ${last.kg}kg <span style="color:${delta>=0?'var(--green)':'var(--coral)'}">(${delta>=0?'+':''}${delta}kg)</span></p>`:''}
+        </div>`;
+        if(hist.length===0){
+          html += `<div class="pillar-card"><p class="ach-sub" style="margin:0">Todavía no hay registros de este ejercicio.</p></div>`;
+        } else {
+          html += `<div class="pillar-card">`;
+          hist.slice().reverse().forEach(h=>{
+            html += `<div class="ex-hist-row"><span class="mono">${h.date.slice(5)}</span><span>${h.kg}kg${h.reps?` × ${h.reps}`:''}</span></div>`;
+          });
+          html += `</div>`;
+        }
+      } else {
+        const todayG = todayStr();
+        const day = state.gymLog[todayG] || {went:false, exercises:[]};
+        html += `<div class="pillar-card">
+          <div class="pillar-card-top"><div class="left"><span>${day.went?'✅':'⬜'}</span><span class="name">¿Entrenaste hoy?</span></div></div>
+          <button class="add-btn" data-action="toggle-gym-day">${day.went?'Marcar que NO fuiste':'Marcar que SÍ fuiste'}</button>
+        </div>`;
+
+        if(day.exercises && day.exercises.length){
+          html += `<p class="ach-sub">Ejercicios de hoy</p><div class="pillar-card">`;
+          day.exercises.forEach(ex=>{
+            html += `<div class="today-ex-row">
+              <span class="name">${escapeHtml(ex.name)}</span>
+              <div class="mission-right">
+                <span class="xp-tag mono">${ex.kg}kg${ex.reps?` × ${ex.reps}`:''}</span>
+                <button class="remove-btn" data-action="remove-exercise" data-date="${todayG}" data-id="${ex.id}">✕</button>
+              </div>
+            </div>`;
+          });
+          html += `</div>`;
+        }
+
+        if(showAddExercise){
+          html += `<div class="add-form">
+            <input id="ex-name" list="ex-names" placeholder="Ejercicio (ej. Press banca)" />
+            <datalist id="ex-names">${allExerciseNames().map(n=>`<option value="${escapeHtml(n)}">`).join('')}</datalist>
+            <div class="add-form-row">
+              <input id="ex-kg" type="number" step="0.5" placeholder="kg" />
+              <input id="ex-reps" type="number" placeholder="reps" />
+            </div>
+            <div class="add-form-actions">
+              <button class="btn-save" data-action="save-exercise">Guardar</button>
+              <button class="btn-cancel" data-action="hide-add-exercise">Cerrar</button>
+            </div>
+          </div>`;
+        } else {
+          html += `<button class="add-btn" data-action="show-add-exercise">+ Añadir ejercicio</button>`;
+        }
+
+        const names = allExerciseNames();
+        if(names.length){
+          html += `<p class="ach-sub" style="margin-top:18px">Tu progreso — toca un ejercicio</p><div class="pillar-card">`;
+          names.forEach(n=>{
+            const h = exerciseHistory(n);
+            const last = h[h.length-1];
+            html += `<div class="pillar-row-tap" data-action="view-exercise" data-name="${escapeHtml(n)}">
+              <span class="name">${escapeHtml(n)}</span>
+              <span class="count-mono mono">${last?last.kg+'kg':'—'}${h.length?` · ${h.length}x`:''}</span>
+            </div>`;
+          });
+          html += `</div>`;
+        }
+      }
+    } else {
+      const todayD = todayStr();
+      const d = state.dietLog[todayD] || {followed:false, notes:''};
+      html += `<div class="pillar-card">
+        <div class="pillar-card-top"><div class="left"><span>${d.followed?'✅':'⬜'}</span><span class="name">¿Seguiste tu dieta hoy?</span></div></div>
+        <button class="add-btn" data-action="toggle-diet-day">${d.followed?'Marcar que NO la seguiste':'Marcar que SÍ la seguiste'}</button>
+      </div>
+      <div class="pillar-card">
+        <b style="font-size:13px">¿Qué comiste hoy?</b>
+        <textarea id="diet-notes" class="notes-textarea" placeholder="Ej: pollo con arroz, batido post-entreno...">${escapeHtml(d.notes||'')}</textarea>
+        <button class="btn-save" data-action="save-diet-notes" style="width:100%;margin-top:4px">Guardar notas</button>
+      </div>`;
+      const dates = Object.keys(state.dietLog).sort().reverse().slice(0,14);
+      if(dates.length){
+        html += `<p class="ach-sub" style="margin-top:16px">Últimos días</p><div class="pillar-card">`;
+        dates.forEach(dt=>{
+          const dd = state.dietLog[dt];
+          html += `<div class="diet-row"><span>${dd.followed?'✅':'❌'}</span><div><span class="diet-date mono">${dt.slice(5)}</span>${dd.notes?`<span class="diet-note">${escapeHtml(dd.notes)}</span>`:''}</div></div>`;
+        });
+        html += `</div>`;
+      }
+    }
+  }
+
   else if(tab==='evolucion'){
     const m30 = milestoneStatus(30), m60 = milestoneStatus(60), m90 = milestoneStatus(90);
     const goal = weekGoal(); const wXP = weeklyXP(); const goalPct = Math.min(100, Math.round(wXP/goal.target*100));
@@ -669,11 +895,13 @@ function render(){
     <div class="ach-grid">`;
     ACHIEVEMENTS.forEach(a=>{
       const unlocked = state.unlockedAchievements.includes(a.id);
+      const aName = typeof a.name==='function' ? a.name(state) : a.name;
+      const aDesc = typeof a.desc==='function' ? a.desc(state) : a.desc;
       html += `
       <div class="ach-card ${unlocked?'unlocked':''}">
         <div class="ach-icon">${unlocked?a.icon:'🔒'}</div>
-        <p class="ach-name">${escapeHtml(a.name)}</p>
-        <p class="ach-desc">${escapeHtml(a.desc)}</p>
+        <p class="ach-name">${escapeHtml(aName)}</p>
+        <p class="ach-desc">${escapeHtml(aDesc)}</p>
       </div>`;
     });
     html += `</div>`;
@@ -710,6 +938,7 @@ function render(){
   const tabs = [
     {id:'hoy', label:'Hoy', icon:'🎯'},
     {id:'pilares', label:'Pilares', icon:'🛡️'},
+    {id:'registro', label:'Registro', icon:'🏋️'},
     {id:'evolucion', label:'Evolución', icon:'🧬'},
     {id:'ranking', label:'Ranking', icon:'🏅'},
     {id:'logros', label:'Logros', icon:'🏆'},
@@ -731,7 +960,7 @@ document.body.addEventListener('click', (e)=>{
   const el = e.target.closest('[data-action]');
   if(!el) return;
   const action = el.dataset.action;
-  if(action==='tab'){ tab = el.dataset.tab; showAddForm=false; if(tab==='ranking') loadLeaderboard(); render(); }
+  if(action==='tab'){ tab = el.dataset.tab; showAddForm=false; selectedExercise=null; showAddExercise=false; if(tab==='ranking') loadLeaderboard(); render(); }
   else if(action==='toggle'){ toggleMission(el.dataset.id); }
   else if(action==='remove'){ e.stopPropagation(); removeMission(el.dataset.id); }
   else if(action==='edit-mission'){ e.stopPropagation(); editMission(el.dataset.id); }
@@ -742,6 +971,16 @@ document.body.addEventListener('click', (e)=>{
   else if(action==='edit-name'){ editName(); }
   else if(action==='edit-pillar'){ editPillar(el.dataset.key); }
   else if(action==='reload-ranking'){ loadLeaderboard(true); render(); }
+  else if(action==='reg-sub'){ registroSub = el.dataset.sub; selectedExercise=null; showAddExercise=false; render(); }
+  else if(action==='toggle-gym-day'){ toggleGymDay(); }
+  else if(action==='show-add-exercise'){ showAddExercise=true; render(); }
+  else if(action==='hide-add-exercise'){ showAddExercise=false; render(); }
+  else if(action==='save-exercise'){ addExercise(); }
+  else if(action==='remove-exercise'){ e.stopPropagation(); removeExercise(el.dataset.date, el.dataset.id); }
+  else if(action==='view-exercise'){ selectedExercise = el.dataset.name; render(); }
+  else if(action==='back-exercise'){ selectedExercise = null; render(); }
+  else if(action==='toggle-diet-day'){ toggleDietDay(); }
+  else if(action==='save-diet-notes'){ saveDietNotes(); }
   else if(action==='close-levelup'){ document.getElementById('modal').innerHTML=''; }
 });
 
