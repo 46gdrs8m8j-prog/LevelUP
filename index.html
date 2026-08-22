@@ -170,6 +170,15 @@
   .diet-row:last-child{border-bottom:none;}
   .diet-date{display:block;font-size:11px;color:var(--muted);}
   .diet-note{display:block;font-size:12px;color:var(--muted2);margin-top:2px;line-height:1.4;}
+  .body-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .body-grid label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px;}
+  .body-grid input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);box-sizing:border-box;font-family:inherit;}
+  .body-grid input:focus{border-color:var(--violet);outline:none;}
+  .body-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+  .body-table th{text-align:left;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--border2);font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .body-table td{padding:8px 4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .body-table tr:last-child td{border-bottom:none;}
+  .body-table .del-cell{text-align:right;}
 
   .navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,12,20,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 4px calc(8px + env(safe-area-inset-bottom));display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;z-index:30;}
   .navbar::-webkit-scrollbar{display:none;}
@@ -289,7 +298,7 @@ function initialState(){
     history:[], perfectDays:0, unlockedAchievements:[],
     weekGoals:{}, milestones:{days30:null,days60:null,days90:null},
     playerName:null, pillarLabels:{}, pillarIcons:{},
-    gymLog:{}, dietLog:{}, goals:[],
+    gymLog:{}, dietLog:{}, goals:[], bodyLog:{},
     exerciseNames:['Press banca','Sentadilla','Peso muerto','Press militar','Dominadas','Remo con barra','Curl de bíceps','Extensión de tríceps','Press inclinado','Zancadas'],
   };
 }
@@ -423,10 +432,27 @@ function removeExercise(date, id){
   saveState(state);
   render();
 }
+function editExercise(date, id){
+  const day = state.gymLog[date];
+  if(!day) return;
+  const ex = day.exercises.find(e=>e.id===id);
+  if(!ex) return;
+  const newName = (prompt('Nombre del ejercicio', ex.name) || '').trim();
+  if(!newName) return;
+  const newKg = parseFloat(prompt('Kg', ex.kg));
+  const newReps = parseInt(prompt('Repeticiones', ex.reps), 10);
+  ex.name = newName;
+  if(!isNaN(newKg)) ex.kg = newKg;
+  if(!isNaN(newReps)) ex.reps = newReps;
+  if(!state.exerciseNames.includes(newName)) state.exerciseNames.push(newName);
+  checkAchievements();
+  saveState(state);
+  render();
+}
 function exerciseHistory(name){
   const rows = [];
   Object.keys(state.gymLog).sort().forEach(date=>{
-    (state.gymLog[date].exercises||[]).forEach(e=>{ if(e.name===name) rows.push({date, kg:e.kg, reps:e.reps}); });
+    (state.gymLog[date].exercises||[]).forEach(e=>{ if(e.name===name) rows.push({date, id:e.id, kg:e.kg, reps:e.reps}); });
   });
   return rows;
 }
@@ -452,6 +478,27 @@ function saveDietNotes(){
   saveState(state);
   render();
 }
+function saveBodyLog(){
+  const w = parseFloat(document.getElementById('body-weight').value);
+  const f = parseFloat(document.getElementById('body-fat').value);
+  const m = parseFloat(document.getElementById('body-muscle').value);
+  const wt = parseFloat(document.getElementById('body-water').value);
+  const today = todayStr();
+  const entry = {...(state.bodyLog[today]||{})};
+  if(!isNaN(w)) entry.weight = w;
+  if(!isNaN(f)) entry.fatPct = f;
+  if(!isNaN(m)) entry.musclePct = m;
+  if(!isNaN(wt)) entry.waterPct = wt;
+  if(Object.keys(entry).length===0){ delete state.bodyLog[today]; }
+  else state.bodyLog[today] = entry;
+  saveState(state);
+  render();
+}
+function removeBodyEntry(date){
+  delete state.bodyLog[date];
+  saveState(state);
+  render();
+}
 
 /* ---------- estado ---------- */
 let state = loadState() || initialState();
@@ -463,6 +510,7 @@ if(!state.pillarIcons) state.pillarIcons = {};
 if(!state.gymLog) state.gymLog = {};
 if(!state.dietLog) state.dietLog = {};
 if(!state.goals) state.goals = [];
+if(!state.bodyLog) state.bodyLog = {};
 if(!state.exerciseNames) state.exerciseNames = ['Press banca','Sentadilla','Peso muerto','Press militar','Dominadas','Remo con barra','Curl de bíceps','Extensión de tríceps','Press inclinado','Zancadas'];
 if(state.currentDate !== todayStr()){
   state.currentDate = todayStr();
@@ -852,7 +900,13 @@ function render(){
         } else {
           html += `<div class="pillar-card">`;
           hist.slice().reverse().forEach(h=>{
-            html += `<div class="ex-hist-row"><span class="mono">${h.date.slice(5)}</span><span>${h.kg}kg${h.reps?` × ${h.reps}`:''}</span></div>`;
+            html += `<div class="ex-hist-row">
+              <span class="mono">${h.date.slice(5)} · ${h.kg}kg${h.reps?` × ${h.reps}`:''}</span>
+              <div class="mission-right">
+                <button class="remove-btn" data-action="edit-exercise" data-date="${h.date}" data-id="${h.id}">✎</button>
+                <button class="remove-btn" data-action="remove-exercise" data-date="${h.date}" data-id="${h.id}">✕</button>
+              </div>
+            </div>`;
           });
           html += `</div>`;
         }
@@ -871,6 +925,7 @@ function render(){
               <span class="name">${escapeHtml(ex.name)}</span>
               <div class="mission-right">
                 <span class="xp-tag mono">${ex.kg}kg${ex.reps?` × ${ex.reps}`:''}</span>
+                <button class="remove-btn" data-action="edit-exercise" data-date="${todayG}" data-id="${ex.id}">✎</button>
                 <button class="remove-btn" data-action="remove-exercise" data-date="${todayG}" data-id="${ex.id}">✕</button>
               </div>
             </div>`;
@@ -921,6 +976,48 @@ function render(){
         <textarea id="diet-notes" class="notes-textarea" placeholder="Ej: pollo con arroz, batido post-entreno...">${escapeHtml(d.notes||'')}</textarea>
         <button class="btn-save" data-action="save-diet-notes" style="width:100%;margin-top:4px">Guardar notas</button>
       </div>`;
+
+      const todayBody = state.bodyLog[todayD] || {};
+      html += `<div class="pillar-card">
+        <b style="font-size:13px">📊 Composición corporal de hoy</b>
+        <p class="ach-sub" style="margin:4px 0 10px">Deja en blanco lo que no midas</p>
+        <div class="body-grid">
+          <div><label>Peso (kg)</label><input id="body-weight" type="number" step="0.1" inputmode="decimal" value="${todayBody.weight??''}"/></div>
+          <div><label>Grasa (%)</label><input id="body-fat" type="number" step="0.1" inputmode="decimal" value="${todayBody.fatPct??''}"/></div>
+          <div><label>Músculo (%)</label><input id="body-muscle" type="number" step="0.1" inputmode="decimal" value="${todayBody.musclePct??''}"/></div>
+          <div><label>Agua (%)</label><input id="body-water" type="number" step="0.1" inputmode="decimal" value="${todayBody.waterPct??''}"/></div>
+        </div>
+        <button class="btn-save" data-action="save-body" style="width:100%;margin-top:10px">Guardar medidas de hoy</button>
+      </div>`;
+
+      const bodyDatesAsc = Object.keys(state.bodyLog).sort();
+      const weightSeries = bodyDatesAsc.filter(dt=>state.bodyLog[dt].weight!=null).slice(-14);
+      if(weightSeries.length>=2){
+        const weights = weightSeries.map(dt=>state.bodyLog[dt].weight);
+        const minW = Math.min(...weights), maxW = Math.max(...weights), range = (maxW-minW)||1;
+        const wDelta = Math.round((weights[weights.length-1]-weights[0])*10)/10;
+        html += `<div class="chart-card">
+          <b style="font-size:12px;display:block;margin-bottom:2px">⚖️ Peso — últimos registros</b>
+          <p class="ach-sub" style="margin:0 0 8px">${weights[0]}kg → ${weights[weights.length-1]}kg <span style="color:${wDelta<=0?'var(--green)':'var(--coral)'}">(${wDelta>0?'+':''}${wDelta}kg)</span></p>
+          <div class="chart">`;
+        weightSeries.forEach((dt,i)=>{
+          const w = state.bodyLog[dt].weight;
+          const pct = Math.max(6, Math.round(((w-minW)/range)*100));
+          html += `<div class="chart-col"><div class="chart-bar" style="height:${pct}%;background:var(--teal)"></div><span class="chart-label">${i%2===0?dt.slice(5):''}</span></div>`;
+        });
+        html += `</div></div>`;
+      }
+
+      const bodyDatesDesc = bodyDatesAsc.slice().reverse();
+      if(bodyDatesDesc.length){
+        html += `<div class="pillar-card" style="overflow-x:auto"><table class="body-table"><thead><tr><th>Fecha</th><th>Peso</th><th>Grasa</th><th>Músculo</th><th>Agua</th><th></th></tr></thead><tbody>`;
+        bodyDatesDesc.forEach(dt=>{
+          const b = state.bodyLog[dt];
+          html += `<tr><td class="mono">${dt.slice(5)}</td><td>${b.weight!=null?b.weight+'kg':'—'}</td><td>${b.fatPct!=null?b.fatPct+'%':'—'}</td><td>${b.musclePct!=null?b.musclePct+'%':'—'}</td><td>${b.waterPct!=null?b.waterPct+'%':'—'}</td><td class="del-cell"><button class="remove-btn" data-action="remove-body" data-date="${dt}">✕</button></td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+
       const dates = Object.keys(state.dietLog).sort().reverse().slice(0,14);
       if(dates.length){
         html += `<p class="ach-sub" style="margin-top:16px">Últimos días</p><div class="pillar-card">`;
@@ -1093,10 +1190,13 @@ document.body.addEventListener('click', (e)=>{
   else if(action==='hide-add-exercise'){ showAddExercise=false; render(); }
   else if(action==='save-exercise'){ addExercise(); }
   else if(action==='remove-exercise'){ e.stopPropagation(); removeExercise(el.dataset.date, el.dataset.id); }
+  else if(action==='edit-exercise'){ e.stopPropagation(); editExercise(el.dataset.date, el.dataset.id); }
   else if(action==='view-exercise'){ selectedExercise = el.dataset.name; render(); }
   else if(action==='back-exercise'){ selectedExercise = null; render(); }
   else if(action==='toggle-diet-day'){ toggleDietDay(); }
   else if(action==='save-diet-notes'){ saveDietNotes(); }
+  else if(action==='save-body'){ saveBodyLog(); }
+  else if(action==='remove-body'){ e.stopPropagation(); removeBodyEntry(el.dataset.date); }
   else if(action==='close-levelup'){ document.getElementById('modal').innerHTML=''; }
 });
 
