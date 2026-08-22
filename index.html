@@ -249,11 +249,11 @@ const ACHIEVEMENTS = [
   {id:'perfect_25',xp:55,name:'Precisión total',desc:'25 días perfectos',icon:'🏆',check:s=>s.perfectDays>=25},
   {id:'perfect_50',xp:90,name:'Sin fisuras',desc:'50 días perfectos',icon:'🏆',check:s=>s.perfectDays>=50},
   {id:'perfect_100',xp:150,name:'Impecable',desc:'100 días perfectos',icon:'🏆',check:s=>s.perfectDays>=100},
-  {id:'pillar_disciplina',xp:35,icon:'🛡️',name:s=>`Domina ${pLabel('disciplina')}`,desc:s=>`300 XP en ${pLabel('disciplina')}`,check:s=>(s.pillarTotals.disciplina||0)>=300},
-  {id:'pillar_fisico',xp:35,icon:'💪',name:s=>`Domina ${pLabel('fisico')}`,desc:s=>`300 XP en ${pLabel('fisico')}`,check:s=>(s.pillarTotals.fisico||0)>=300},
-  {id:'pillar_mente',xp:35,icon:'🧠',name:s=>`Domina ${pLabel('mente')}`,desc:s=>`300 XP en ${pLabel('mente')}`,check:s=>(s.pillarTotals.mente||0)>=300},
-  {id:'pillar_finanzas',xp:35,icon:'💰',name:s=>`Domina ${pLabel('finanzas')}`,desc:s=>`300 XP en ${pLabel('finanzas')}`,check:s=>(s.pillarTotals.finanzas||0)>=300},
-  {id:'pillar_objetivos',xp:35,icon:'👔',name:s=>`Domina ${pLabel('objetivos')}`,desc:s=>`300 XP en ${pLabel('objetivos')}`,check:s=>(s.pillarTotals.objetivos||0)>=300},
+  {id:'pillar_disciplina',xp:55,icon:'🛡️',name:s=>`Domina ${pLabel('disciplina')}`,desc:s=>`Nivel 5 en ${pLabel('disciplina')}`,check:s=>levelFromXP(s.pillarTotals.disciplina).level>=5},
+  {id:'pillar_fisico',xp:55,icon:'💪',name:s=>`Domina ${pLabel('fisico')}`,desc:s=>`Nivel 5 en ${pLabel('fisico')}`,check:s=>levelFromXP(s.pillarTotals.fisico).level>=5},
+  {id:'pillar_mente',xp:55,icon:'🧠',name:s=>`Domina ${pLabel('mente')}`,desc:s=>`Nivel 5 en ${pLabel('mente')}`,check:s=>levelFromXP(s.pillarTotals.mente).level>=5},
+  {id:'pillar_finanzas',xp:55,icon:'💰',name:s=>`Domina ${pLabel('finanzas')}`,desc:s=>`Nivel 5 en ${pLabel('finanzas')}`,check:s=>levelFromXP(s.pillarTotals.finanzas).level>=5},
+  {id:'pillar_objetivos',xp:55,icon:'👔',name:s=>`Domina ${pLabel('objetivos')}`,desc:s=>`Nivel 5 en ${pLabel('objetivos')}`,check:s=>levelFromXP(s.pillarTotals.objetivos).level>=5},
   {id:'custom_3',xp:10,name:'Personalización',desc:'Crea 3 misiones propias',icon:'🧩',check:s=>s.missions.filter(m=>!m.isDefault).length>=3},
   {id:'custom_10',xp:25,name:'Diseñador de hábitos',desc:'Crea 10 misiones propias',icon:'🧩',check:s=>s.missions.filter(m=>!m.isDefault).length>=10},
   {id:'gym_first',xp:5,name:'Primer entreno',desc:'Registra tu primer ejercicio',icon:'🏋️',check:s=>Object.values(s.gymLog||{}).some(d=>d.exercises&&d.exercises.length>0)},
@@ -271,6 +271,11 @@ const STORAGE_KEY = 'levelup-state-v1';
 const todayStr = () => new Date().toISOString().slice(0,10);
 const yesterdayStr = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
 const xpForLevel = level => 100 + (level-1)*40;
+function levelFromXP(totalXP){
+  let level=1, remaining=totalXP||0;
+  while(remaining >= xpForLevel(level)){ remaining -= xpForLevel(level); level++; }
+  return {level, into:remaining, need:xpForLevel(level)};
+}
 const levelName = level => LEVEL_NAMES[Math.min(level, LEVEL_NAMES.length)-1] || 'Más allá';
 const escapeHtml = str => String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -807,19 +812,20 @@ function render(){
   }
 
   else if(tab==='pilares'){
-    const maxPillarXP = Math.max(1, ...Object.values(state.pillarTotals));
     html += `<div class="section-title"><h2>Progreso por pilar</h2></div>
-    <p class="ach-sub">Toca el nombre de un pilar para ponerle el tuyo</p>`;
+    <p class="ach-sub">Toca el nombre de un pilar para ponerle el tuyo · cada pilar sube de nivel igual que tu personaje</p>`;
     Object.entries(PILLARS).forEach(([key,p])=>{
-      const val = state.pillarTotals[key];
-      const w = Math.max(4, Math.round((val/maxPillarXP)*100));
+      const val = state.pillarTotals[key]||0;
+      const lvl = levelFromXP(val);
+      const w = Math.max(4, Math.round((lvl.into/lvl.need)*100));
       html += `
       <div class="pillar-card">
         <div class="pillar-card-top">
           <div class="left" data-action="edit-pillar" data-key="${key}"><span>${pIcon(key)}</span><span class="name">${escapeHtml(pLabel(key))} <span style="opacity:.4;font-size:11px;font-weight:400">✎</span></span></div>
-          <span class="count-mono mono">${val} XP · ${state.pillarCompletions[key]} misiones</span>
+          <span class="count-mono mono">Nv.${lvl.level} · ${state.pillarCompletions[key]} misiones</span>
         </div>
         <div class="pillar-track"><div class="pillar-fill" style="width:${w}%;background:${p.color}"></div></div>
+        <p class="count-mono mono" style="margin:6px 0 0">${lvl.into} / ${lvl.need} XP · ${val} XP total en este pilar</p>
       </div>`;
     });
   }
@@ -956,12 +962,12 @@ function render(){
     </div>
     <div class="pillar-card" style="margin-top:12px">
       <div class="pillar-card-top"><div class="left"><span>🧭</span><span class="name">Tus atributos</span></div></div>`;
-    const maxAttr = Math.max(1, ...Object.values(state.pillarTotals));
     Object.entries(PILLARS).forEach(([key,p])=>{
-      const val = state.pillarTotals[key];
-      const w = Math.max(3, Math.round((val/maxAttr)*100));
+      const val = state.pillarTotals[key]||0;
+      const lvl = levelFromXP(val);
+      const w = Math.max(3, Math.round((lvl.into/lvl.need)*100));
       html += `<div class="attr-row">
-        <div class="attr-top"><span>${pIcon(key)} ${pLabel(key)}</span><span class="mono">${val} XP</span></div>
+        <div class="attr-top"><span>${pIcon(key)} ${pLabel(key)}</span><span class="mono">Nv.${lvl.level}</span></div>
         <div class="pillar-track"><div class="pillar-fill" style="width:${w}%;background:${p.color}"></div></div>
       </div>`;
     });
